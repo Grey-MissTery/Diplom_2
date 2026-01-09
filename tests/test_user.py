@@ -10,34 +10,64 @@ class TestUserCreate:
 
     @allure.title('Создание уникального пользователя с заполнением всех обязательных полей')
     @allure.description('ОР: Пользователь успешно создан')
-    def test_create_user_email_password_name_created_successfully(self, create_user):
+    def test_create_user_email_password_name_created_successfully(self):
         """Создание уникального пользователя со всеми обязательными полями."""
-        status_code, response_data, _ = create_user
+        # Генерируем данные пользователя
+        user_data = generate_user_data()
         
+        # Создаем пользователя через API
+        user_methods = UserMethods()
+        status_code, response_data, payload = user_methods.post_create_user(params=user_data)
+        
+        # Проверяем результат создания
         assert status_code == 200, f"Ожидался статус 200, получен {status_code}"
         assert response_data["success"] is True, f"Success должен быть True, получен {response_data.get('success')}"
         assert "user" in response_data, "В ответе должен быть объект user"
         assert "accessToken" in response_data, "В ответе должен быть accessToken"
-        assert response_data["user"]["email"] is not None, "Email не должен быть пустым"
-        assert response_data["user"]["name"] is not None, "Name не должен быть пустым"
+        assert response_data["user"]["email"] == user_data["email"], (
+            f"Email: {response_data.get('user', {}).get('email')} (ожидался {user_data['email']})"
+        )
+        assert response_data["user"]["name"] == user_data["name"], (
+            f"Name: {response_data.get('user', {}).get('name')} (ожидался {user_data['name']})"
+        )
+        
+        # Очистка: удаляем созданного пользователя
+        user_methods.delete_user(
+            access_token=response_data["accessToken"],
+            json_data={"email": user_data["email"], "password": user_data["password"]}
+        )
 
     @allure.title('Создание пользователя, который уже зарегистрирован в системе')
     @allure.description('ОР: Пользователь не создан, запрос возвращает ошибку')
-    def test_create_user_already_exists_error(self, create_user):
+    def test_create_user_already_exists_error(self):
         """Попытка создания пользователя с уже существующим email."""
-        _, _, existing_user = create_user
+        # 1. Сначала создаем пользователя
+        user_methods = UserMethods()
+        first_status, first_response, first_payload = user_methods.post_create_user()
         
-        params = {
-            "email": existing_user["email"],
-            "password": existing_user["password"],
-            "name": existing_user["name"]
+        # Проверяем, что первый пользователь создан успешно
+        assert first_status == 200, "Первый пользователь должен быть создан"
+        assert first_response["success"] is True, "Первый пользователь должен быть создан успешно"
+        
+        # 2. Пытаемся создать второго пользователя с теми же данными
+        duplicate_data = {
+            "email": first_payload["email"],
+            "password": first_payload["password"],
+            "name": first_payload["name"]
         }
-        status_code, response_data, _ = UserMethods().post_create_user(params)
+        status_code, response_data, _ = user_methods.post_create_user(params=duplicate_data)
         
+        # Проверяем, что второй пользователь не создан
         assert status_code == 403, f"Ожидался статус 403, получен {status_code}"
         assert response_data["success"] is False, f"Success должен быть False, получен {response_data.get('success')}"
         assert response_data["message"] == USER_EXISTS, (
             f"Сообщение: '{response_data.get('message')}' (ожидалось '{USER_EXISTS}')"
+        )
+        
+        # Очистка: удаляем первого пользователя
+        user_methods.delete_user(
+            access_token=first_response["accessToken"],
+            json_data={"email": first_payload["email"], "password": first_payload["password"]}
         )
 
     @allure.title('Создание пользователя без заполнения одного из обязательных полей')
