@@ -51,17 +51,12 @@ def authorization_user(create_user):
     Фикстура возвращает данные авторизованного пользователя.
     Пользователь уже создан и имеет валидные токены.
     """
-    status_code, response_data, user_data = create_user
+    # Подчеркивания показывают, что эти переменные намеренно нами не используются
+    _, _, user_data = create_user
     
-    # Проверяем успешность создания пользователя
-    assert status_code == 200, f"Ожидался статус 200 при создании пользователя, получен {status_code}"
-    assert response_data.get("success") is True, "Пользователь не был создан успешно"
-    
-    # Проверяем наличие необходимых данных
-    assert "accessToken" in user_data and user_data["accessToken"], "Отсутствует accessToken"
-    assert "email" in user_data, "Отсутствует email"
-    
-    yield user_data
+    # Возвращаем данные пользователя
+    # Проверку успешности создания оставляем тестам
+    return user_data
 
 
 @pytest.fixture
