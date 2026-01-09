@@ -28,13 +28,13 @@ class OrderMethods:
     @allure.step('Получение заказов авторизованного пользователя')
     def get_order_with_token(self, access_token):
         """Получение заказов с токеном авторизации."""
-        response = requests.get(GET_ORDER_URL, headers={"Authorization": access_token})
+        response = requests.get(GET_USER_ORDERS_URL, headers={"Authorization": access_token})
         return response.status_code, response.json()
 
     @allure.step('Получение заказов неавторизованного пользователя')
     def get_order_no_token(self):
         """Получение заказов без токена авторизации."""
-        response = requests.get(GET_ORDER_URL)
+        response = requests.get(GET_USER_ORDERS_URL)
         return response.status_code, response.json()
 
     @allure.step('Получение информации об ингредиентах')
